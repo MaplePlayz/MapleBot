@@ -3,7 +3,7 @@ from discord import app_commands
 
 intens = discord.Intents.default()
 client = discord.Client(intents=intens)
-tree = appp_commands.CommandTree(client)
+tree = app_commands.CommandTree(client)
 
 @tree.command(
     name="commandname",
