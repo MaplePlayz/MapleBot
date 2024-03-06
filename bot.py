@@ -6,6 +6,7 @@ from discord.ext.commands import MissingPermissions
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
+log_channel_id = 1173725610309341401
 
 bot = discord.Bot()
 
@@ -46,6 +47,8 @@ async def unban(ctx, user: str = discord.Option(name="user", description="The us
     member = await bot.fetch_user(user_id)
     await ctx.guild.unban(member)
     await ctx.respond(f"Unbanned {member.mention}")
+    log_channel = bot.get_channel(log_channel_id)
+    await log_channel.send(f"{member.mention} has been unbanned by {ctx.author.mention} ")
 @bot.event
 async def on_application_command_error(ctx, error):
     if isinstance(error, MissingPermissions):
@@ -71,7 +74,8 @@ async def ban(ctx, member: Option(discord.Member, description="The member to ban
         await member.send(f"You have been banned from {ctx.guild.name} for {reason}")
         await ctx.guild.ban(member, reason=reason)
         await ctx.send(f"{member.mention} has been banned by {ctx.author.mention} for {reason}")
-
+        log_channel = bot.get_channel(log_channel_id)
+        await log_channel.send(f"{member.mention} has been banned by {ctx.author.mention} for {reason}")
 @ban.error
 async def ban_error(ctx, error):
     if isinstance(error, MissingPermissions):
@@ -80,9 +84,33 @@ async def ban_error(ctx, error):
         await ctx.send(f"Something went wrong, I couldn't ban this member. Error: {error}")
         raise error
 
+    
 #kick command
 
-
+@bot.slash_command(guild_ids=servers, name="kick", description="Kick a user")
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+    if member.id == ctx.author.id:
+        await ctx.send("You can't kick yourself!")
+        return
+    elif ctx.guild.get_member(member.id) and ctx.guild.get_member(member.id).guild_permissions.administrator:
+        await ctx.send("You can't kick an admin!")
+        return
+    else:
+        if reason is None:
+            reason = f"No reason provided by {ctx.author.name}"
+        await member.send(f"You have been kicked from {ctx.guild.name} for {reason}")
+        await ctx.guild.ban(member, reason=reason)
+        await ctx.send(f"{member.mention} has been kicked by {ctx.author.mention} for {reason}")
+        log_channel = bot.get_channel(log_channel_id)
+        await log_channel.send(f"{member.mention} has been kicked by {ctx.author.mention} for {reason}")
+@ban.error
+async def ban_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("You don't have the required permissions to run this command.")
+    else:
+        await ctx.send(f"Something went wrong, I couldn't ban this member. Error: {error}")
+        raise error
 
 
 
@@ -94,4 +122,4 @@ async def ban_error(ctx, error):
 async def on_ready():
     print("Ready!")
 
-bot.run("")
+bot.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
