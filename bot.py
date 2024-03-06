@@ -88,7 +88,21 @@ async def mute(interaction, user: discord.Member, reason: str):
     else:
         await interaction.response.send_message("Je hebt hier geen premissies voor.")
                 
-
+#unmute commando
+@tree.command(
+    name="unmute",
+    description="Unmute a user",
+    guild=discord.Object(id=guild_id)
+)
+async def unmute(interaction, user: discord.Member,):
+    required_roles = admin_roles
+    member_roles = [role.id for role in interaction.user.roles]
+    if any(role_id in member_roles for role_id in required_roles):
+        await user.remove_roles(discord.Object(id=muted_role))
+        await user.send(f"Je bent geunmute van {interaction.guild.name}")
+        await interaction.response.send_message(f"{user} is geunmute")
+    else:
+        await interaction.response.send_message("Je hebt hier geen premissies voor.")
 
 
 
@@ -105,4 +119,4 @@ async def on_ready():
 
 
 
-client.run("")
+client.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
