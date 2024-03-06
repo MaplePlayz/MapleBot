@@ -7,7 +7,7 @@ tree = app_commands.CommandTree(client)
 
 guild_id = 1173725609382400101  # Hier kun je de gewenste guild-ID plaatsen
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
-muted_role = 1173725609382400110  # Hier kun je de gewenste muted-role ID plaatsen
+muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
 
 @tree.command(
     name="hello",
@@ -81,31 +81,13 @@ async def ban(interaction, user: discord.Member, reason: str):
 async def mute(interaction, user: discord.Member, reason: str):
     required_roles = admin_roles
     member_roles = [role.id for role in interaction.user.roles]
-
     if any(role_id in member_roles for role_id in required_roles):
-        await user.add_roles(muted_role)
+        await user.add_roles(discord.Object(id=muted_role))
         await user.send(f"Je bent gemute van {interaction.guild.name} voor {reason}")
         await interaction.response.send_message(f"{user} is gemute voor {reason}")
     else:
         await interaction.response.send_message("Je hebt hier geen premissies voor.")
-
-#unmute commando
-@tree.command(
-    name="unmute",
-    description="Unmute a user",
-    guild=discord.Object(id=guild_id)
-)
-async def unmute(interaction, user: discord.Member):
-    required_roles = admin_roles
-    member_roles = [role.id for role in interaction.user.roles]
-
-    if any(role_id in member_roles for role_id in required_roles):
-        
-        await user.remove_roles(muted_role)
-        await interaction.response.send_message(f"{user} is geunmute.")
-    else:
-        await interaction.response.send_message("Je hebt hier geen premissies voor.")
-        
+                
 
 
 
