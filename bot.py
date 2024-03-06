@@ -1,108 +1,86 @@
 import discord
-from discord import app_commands
+from datetime import datetime
+from discord import Option
+from discord.ext import commands
+from discord.ext.commands import MissingPermissions
 
-intens = discord.Intents.default()
-client = discord.Client(intents=intens)
-tree = app_commands.CommandTree(client)
-
-guild_id = 1173725609382400101  # Hier kun je de gewenste guild-ID plaatsen
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
 
-@tree.command(
-    name="hello",
-    description="My first application Command",
-    guild=discord.Object(id=guild_id)
-)
-async def first_command(interaction):
-    await interaction.response.send_message("Hello!")
+bot = discord.Bot()
 
-#admin commando's
-@tree.command(
-    name="kick",
-    description="Kick a user",
-    guild=discord.Object(id=guild_id)
-)
-#kick commando
-async def kick(interaction, user: discord.Member, reason: str):
-    required_roles = admin_roles
-    member_roles = [role.id for role in interaction.user.roles]
+servers = [1173725609382400101]
 
-    if any(role_id in member_roles for role_id in required_roles):
-        await user.send(f"Je bent gekickt van {interaction.guild.name} voor {reason}")
-        await user.kick(reason=reason)
-        await interaction.response.send_message(f"{user} is gekickt voor {reason}")
+#Administrator commands
+
+#banlist command
+
+@bot.slash_command(guild_ids=servers, name="banlist", description="Get list of banned users")
+@commands.has_permissions(ban_members=True)
+async def banlist(ctx):
+    await ctx.defer()
+    embed = discord.Embed(title="Banned Users", description="List of banned users", color=0x00ff00, timestamp=datetime.utcnow())
+    async for entry in ctx.guild.bans():
+        if len(embed.fields) >= 25:
+            break
+        if len(embed) > 5900:
+            embed.add_field(name="Banned Users", value="Too many users to display")
+        else:
+            embed.add_field(name=f"ban", value = f"Username: {entry.user.name}#{entry.user.discriminator}\nID: {entry.user.id}\nReason: {entry.reason}")
+            
+    await ctx.respond(embed=embed)
+    
+    
+#unban command
+
+@bot.slash_command(guild_ids=servers, name="unban", description="Unban a user")
+@commands.has_permissions(ban_members=True)
+async def unban(ctx, user: str = discord.Option(name="user", description="The user to unban", required=True)):
+    await ctx.defer()
+    try:
+        user_id = int(user)
+    except ValueError:
+        await ctx.send("Please provide a valid user ID.")
+        return
+    
+    member = await bot.fetch_user(user_id)
+    await ctx.guild.unban(member)
+    await ctx.respond(f"Unbanned {member.mention}")
+@bot.event
+async def on_application_command_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("You don't have the required permissions to run this command.")
     else:
-        await interaction.response.send_message("Je hebt hier geen premissies voor.")
-#ban commando
-@tree.command(
-    name="ban",
-    description="Ban a user",
-    guild=discord.Object(id=guild_id)
-)
-async def ban(interaction, user: discord.Member, reason: str):
-    required_roles = admin_roles
-    member_roles = [role.id for role in interaction.user.roles]
+        await ctx.respond(f"Something went wrong, I couldn't unban this member or the member isn't banned. Error: {error}")
+        raise error
 
-    if any(role_id in member_roles for role_id in required_roles):
-        await user.send(f"Je bent geband van {interaction.guild.name} voor {reason}")
-        await user.ban(reason=reason)
-        await interaction.response.send_message(f"{user} is geband voor {reason}")
+#ban command
+
+@bot.slash_command(guild_ids=servers, name="ban", description="Ban a user")
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+    if member.id == ctx.author.id:
+        await ctx.send("You can't ban yourself!")
+        return
+    elif ctx.guild.get_member(member.id) and ctx.guild.get_member(member.id).guild_permissions.administrator:
+        await ctx.send("You can't ban an admin!")
+        return
     else:
-        await interaction.response.send_message("Je hebt hier geen premissies voor.")
+        if reason is None:
+            reason = f"No reason provided by {ctx.author.name}"
+        await member.send(f"You have been banned from {ctx.guild.name} for {reason}")
+        await ctx.guild.ban(member, reason=reason)
+        await ctx.send(f"{member.mention} has been banned by {ctx.author.mention} for {reason}")
 
-#unban commando
-# @tree.command(
-#     name="unban",
-#     description="Unban a user",
-#     guild=discord.Object(id=guild_id)
-# )
-# async def unban(interaction, user_id: int):
-#             required_roles = admin_roles
-#             member_roles = [role.id for role in interaction.user.roles]
-
-#             if any(role_id in member_roles for role_id in required_roles):
-#                 banned_users = await interaction.guild.bans()
-#                 for ban_entry in banned_users:
-#                     if ban_entry.user.id == int(user_id):  # Convert user_id to an integer
-#                         await interaction.guild.unban(ban_entry.user)
-#                         await interaction.response.send_message(f"Gebruiker met ID {user_id} kan de server weer in.")
-#                         return
-#                 await interaction.response.send_message(f"Gebruiker met ID {user_id} is niet verbannen.")
-#             else:
-#                 await interaction.response.send_message("Je hebt hier geen premissies voor.")
-
-#mute commando
-@tree.command(
-    name="mute",
-    description="Mute a user",
-    guild=discord.Object(id=guild_id)
-)
-async def mute(interaction, user: discord.Member, reason: str):
-    required_roles = admin_roles
-    member_roles = [role.id for role in interaction.user.roles]
-    if any(role_id in member_roles for role_id in required_roles):
-        await user.add_roles(discord.Object(id=muted_role))
-        await user.send(f"Je bent gemute van {interaction.guild.name} voor {reason}")
-        await interaction.response.send_message(f"{user} is gemute voor {reason}")
+@ban.error
+async def ban_error(ctx, error):
+    if isinstance(error, MissingPermissions):
+        await ctx.send("You don't have the required permissions to run this command.")
     else:
-        await interaction.response.send_message("Je hebt hier geen premissies voor.")
-                
-#unmute commando
-@tree.command(
-    name="unmute",
-    description="Unmute a user",
-    guild=discord.Object(id=guild_id)
-)
-async def unmute(interaction, user: discord.Member,):
-    required_roles = admin_roles
-    member_roles = [role.id for role in interaction.user.roles]
-    if any(role_id in member_roles for role_id in required_roles):
-        await user.remove_roles(discord.Object(id=muted_role))
-        await user.send(f"Je bent geunmute van {interaction.guild.name}")
-        await interaction.response.send_message(f"{user} is geunmute")
-    else:
-        await interaction.response.send_message("Je hebt hier geen premissies voor.")
+        await ctx.send(f"Something went wrong, I couldn't ban this member. Error: {error}")
+        raise error
+
+#kick command
 
 
 
@@ -112,11 +90,8 @@ async def unmute(interaction, user: discord.Member,):
 
 
 
-@client.event
+@bot.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=1173725609382400101))
     print("Ready!")
 
-
-
-client.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
+bot.run("")
