@@ -122,4 +122,4 @@ async def ban_error(ctx, error):
 async def on_ready():
     print("Ready!")
 
-bot.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
+bot.run("")
