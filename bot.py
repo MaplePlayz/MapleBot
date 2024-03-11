@@ -249,7 +249,7 @@ async def play(ctx, song: str):
 
 
 
-
+@bot.event
 async def on_ready():
     print("Ready!")
 
