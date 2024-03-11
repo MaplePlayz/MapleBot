@@ -3,6 +3,9 @@ from discord import Option
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
 from datetime import datetime, timedelta
+import yt_dlp
+from discord import FFmpegPCMAudio
+
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
@@ -11,6 +14,8 @@ log_channel_id = 1173725610309341401
 bot = discord.Bot()
 
 servers = [1173725609382400101]
+
+
 
 #Administrator commands
 
@@ -49,7 +54,7 @@ async def unban(ctx, user: str = discord.Option(name="user", description="The us
     await ctx.respond(f"Unbanned {member.mention}")
     log_channel = bot.get_channel(log_channel_id)
     await log_channel.send(f"{member.mention} has been unbanned by {ctx.author.mention} ")
-@bot.event
+@unban.error
 async def on_application_command_error(ctx, error):
     if isinstance(error, MissingPermissions):
         await ctx.respond("You don't have the required permissions to run this command.")
@@ -175,9 +180,76 @@ async def clear_error(ctx, error):
         await ctx.respond(f"Something went wrong, I couldn't clear messages. Error: {error}")
         raise error
 
+#music commands
 
 
-@bot.event
+#play command
+@bot.slash_command(guild_ids=servers, name="play", description="Play a song")
+async def play(ctx, song: str):
+    voice_channel = ctx.author.voice.channel
+    if voice_channel is None:
+        await ctx.respond("You are not in a voice channel.")
+        return
+
+    voice_client = ctx.guild.voice_client
+
+    if voice_client and voice_client.is_playing():
+        await ctx.respond("I'm already playing a song.")
+        return
+
+    if voice_client is None:
+        voice_client = await voice_channel.connect()
+
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp4',
+            'preferredquality': '192',
+        }],
+        'default_search': 'ytsearch',
+        'extractor_args': {
+            'youtube': {
+                'default_search': 'auto',
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp4',
+                    'preferredquality': '192',
+                }],
+            },
+        },
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            info = ydl.extract_info(song, download=False)
+            
+            if 'url' in info:
+                url = info['url']
+            elif 'entries' in info:
+                # Take the URL of the first video in the playlist
+                url = info['entries'][0]['url']
+            else:
+                await ctx.respond("Could not find the URL of the song.")
+                return
+        except yt_dlp.DownloadError as e:
+            await ctx.respond(f"An error occurred while trying to play the song: {e}")
+            return
+
+    try:
+        
+        voice_client.play(discord.FFmpegPCMAudio(url))
+        await ctx.respond(f"Now playing: {song}")
+    except Exception as e:
+        await ctx.respond(f"An error occurred while playing the song: {e}")
+        # Logging the error
+        print(f"Error occurred while playing the song: {e}")
+
+
+
+
+
 async def on_ready():
     print("Ready!")
 
