@@ -211,7 +211,7 @@ async def play(ctx, song: str):
     if voice_client is None:
         voice_client = await voice_channel.connect()
 
-    #await ctx.defer()
+    await ctx.defer()
 
     await play_song(ctx, song)
 
@@ -241,14 +241,14 @@ async def play_song(ctx, song):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(song, download=True)
-            if 'url' in info:
-                url = info['url']
-            elif 'entries' in info:
+            #if 'url' in info:
+               # url = info['url']
+           # elif 'entries' in info:
                 # Take the URL of the first video in the playlist
-                url = info['entries'][0]['url']
-            else:
-                await ctx.respond("Could not find the URL of the song.")
-                return
+              #  url = info['entries'][0]['url']
+           # else:
+             #   await ctx.respond("Could not find the URL of the song.")
+               # return
         except yt_dlp.DownloadError as e:
             await ctx.respond(f"An error occurred while trying to play the song: {e}")
             return
@@ -331,11 +331,15 @@ async def resume_error(ctx, error):
     raise error
 
 #queue command
-@bot.slash_command(guild_ids=servers, name="queue", description="look at the songs in the queue")
+@bot.slash_command(guild_ids=servers, name="queue", description="Show the queue")
 async def queue(ctx):
     if song_queue:
-        songs = "\n".join(song_queue)
-        await ctx.respond(f"Queue:\n{songs}")
+        queue_list = ""
+        for i, song in enumerate(song_queue):
+            queue_list += f"{i + 1}. {song}\n"
+        await ctx.respond(f"Queue:\n{queue_list}")
+    else:
+        await ctx.respond("The queue is empty.")
 
 
 
