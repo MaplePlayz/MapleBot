@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import yt_dlp
 from discord import FFmpegPCMAudio
 import os
+from collections import deque
+import asyncio
 
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
@@ -184,26 +186,39 @@ async def clear_error(ctx, error):
 #music commands
 
 
-#play command
+# Queue to hold songs
+song_queue = deque()
+
 @bot.slash_command(guild_ids=servers, name="play", description="Play a song")
 async def play(ctx, song: str):
     voice_channel = ctx.author.voice.channel
     if voice_channel is None:
         await ctx.respond("You are not in a voice channel.")
         return
-
+    #check if the link provided is a playlist trough checking if list= is in the link
+    if "list=" in song:
+        await ctx.respond("I can't play playlists yet, only single songs.")
+        return
     voice_client = ctx.guild.voice_client
 
+    # If there's a voice client but no songs playing, add the song to the queue
     if voice_client and voice_client.is_playing():
-        await ctx.respond("I'm already playing a song.")
+        # Add the song to the queue
+        song_queue.append(song)
+        await ctx.respond(f"{song} has been added to the queue.")
         return
 
     if voice_client is None:
         voice_client = await voice_channel.connect()
+
     await ctx.defer()
+
+    await play_song(ctx, song)
+
+async def play_song(ctx, song):
     ydl_opts = {
         'format': 'bestaudio/best',
-        'outtmpl': 'tempsong',  #filename
+        'outtmpl': 'tempsong',  # filename
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
@@ -240,21 +255,79 @@ async def play(ctx, song: str):
 
     try:
         # Play the song
-        voice_client.play(discord.FFmpegPCMAudio('tempsong.mp3'), after=lambda e: os.remove('tempsong.mp3'))
+        voice_client = ctx.guild.voice_client
+        voice_client.play(discord.FFmpegPCMAudio('tempsong.mp3'), after=lambda e: play_next(ctx))
         await ctx.respond(f"Now playing: {song}")
-        # error on removing file
-        if not os.path.exists('tempsong.mp3'):
-            # Remove all mp3 files in the current directory
-            for file in os.listdir():
-                if file.endswith('.mp3'):
-                    os.remove(file)
-        
     except Exception as e:
         await ctx.respond(f"An error occurred while playing the song: {e}")
         # Logging the error
         print(f"Error occurred while playing the song: {e}")
 
+def play_next(ctx):
+    voice_client = ctx.guild.voice_client
+    if song_queue:
+        next_song = song_queue.popleft()
+        asyncio.run(play_song(ctx, next_song))
+    else:
+        # If no more songs in the queue, delete the last song played
+        os.remove('tempsong.mp3')
 
+# Skip command
+@bot.slash_command(guild_ids=servers, name="skip", description="Skip the current song")
+async def skip(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.stop()
+        await ctx.respond("Song skipped.")
+    else:
+        await ctx.respond("No song is currently playing.")
+@skip.error
+async def skip_error(ctx, error):
+    await ctx.respond(f"An error occurred while trying to skip the song: {error}")
+    raise error
+
+# Stop command
+@bot.slash_command(guild_ids=servers, name="stop", description="Stop the music")
+async def stop(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.stop()
+        await voice_client.disconnect()
+        await ctx.respond("Music stopped.")
+    else:
+        await ctx.respond("No song is currently playing.")
+@stop.error
+async def stop_error(ctx, error):
+    await ctx.respond(f"An error occurred while trying to stop the music: {error}")
+    raise error
+
+# Pause command
+@bot.slash_command(guild_ids=servers, name="pause", description="Pause the music")
+async def pause(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        voice_client.pause()
+        await ctx.respond("Music paused.")
+    else:
+        await ctx.respond("No song is currently playing.")
+@pause.error
+async def pause_error(ctx, error):
+    await ctx.respond(f"An error occurred while trying to pause the music: {error}")
+    raise error
+
+# Resume command
+@bot.slash_command(guild_ids=servers, name="resume", description="Resume the music")
+async def resume(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client and voice_client.is_paused():
+        voice_client.resume()
+        await ctx.respond("Music resumed.")
+    else:
+        await ctx.respond("No song is currently paused.")
+@resume.error
+async def resume_error(ctx, error):
+    await ctx.respond(f"An error occurred while trying to resume the music: {error}")
+    raise error
 
 
 @bot.event
