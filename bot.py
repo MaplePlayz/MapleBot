@@ -211,7 +211,7 @@ async def play(ctx, song: str):
     if voice_client is None:
         voice_client = await voice_channel.connect()
 
-    await ctx.defer()
+    #await ctx.defer()
 
     await play_song(ctx, song)
 
@@ -291,9 +291,10 @@ async def skip_error(ctx, error):
 async def stop(ctx):
     voice_client = ctx.guild.voice_client
     if voice_client and voice_client.is_playing():
+        await ctx.respond("Music stopped.")
         voice_client.stop()
         await voice_client.disconnect()
-        await ctx.respond("Music stopped.")
+        
     else:
         await ctx.respond("No song is currently playing.")
 @stop.error
@@ -328,6 +329,14 @@ async def resume(ctx):
 async def resume_error(ctx, error):
     await ctx.respond(f"An error occurred while trying to resume the music: {error}")
     raise error
+
+#queue command
+@bot.slash_command(guild_ids=servers, name="queue", description="look at the songs in the queue")
+async def queue(ctx):
+    if song_queue:
+        songs = "\n".join(song_queue)
+        await ctx.respond(f"Queue:\n{songs}")
+
 
 
 @bot.event
