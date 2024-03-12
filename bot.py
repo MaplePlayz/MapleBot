@@ -5,6 +5,7 @@ from discord.ext.commands import MissingPermissions
 from datetime import datetime, timedelta
 import yt_dlp
 from discord import FFmpegPCMAudio
+import os
 
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
@@ -199,13 +200,14 @@ async def play(ctx, song: str):
 
     if voice_client is None:
         voice_client = await voice_channel.connect()
-
+    await ctx.defer()
     ydl_opts = {
         'format': 'bestaudio/best',
+        'outtmpl': 'tempsong',  #filename
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp4',
-            'preferredquality': '192',
+            'preferredcodec': 'mp3',
+            'preferredquality': '0',
         }],
         'default_search': 'ytsearch',
         'extractor_args': {
@@ -214,8 +216,8 @@ async def play(ctx, song: str):
                 'format': 'bestaudio/best',
                 'postprocessors': [{
                     'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp4',
-                    'preferredquality': '192',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '0',
                 }],
             },
         },
@@ -223,8 +225,7 @@ async def play(ctx, song: str):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
-            info = ydl.extract_info(song, download=False)
-            
+            info = ydl.extract_info(song, download=True)
             if 'url' in info:
                 url = info['url']
             elif 'entries' in info:
@@ -238,9 +239,16 @@ async def play(ctx, song: str):
             return
 
     try:
-        
-        voice_client.play(discord.FFmpegPCMAudio(url))
+        # Play the song
+        voice_client.play(discord.FFmpegPCMAudio('tempsong.mp3'), after=lambda e: os.remove('tempsong.mp3'))
         await ctx.respond(f"Now playing: {song}")
+        # error on removing file
+        if not os.path.exists('tempsong.mp3'):
+            # Remove all mp3 files in the current directory
+            for file in os.listdir():
+                if file.endswith('.mp3'):
+                    os.remove(file)
+        
     except Exception as e:
         await ctx.respond(f"An error occurred while playing the song: {e}")
         # Logging the error
@@ -251,6 +259,9 @@ async def play(ctx, song: str):
 
 @bot.event
 async def on_ready():
+    for file in os.listdir():
+                if file.endswith('.mp3'):
+                    os.remove(file)
     print("Ready!")
 
-bot.run("")
+bot.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
