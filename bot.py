@@ -61,7 +61,7 @@ async def on_application_command_error(ctx, error):
 
 @bot.slash_command(guild_ids=servers, name="ban", description="Ban a user")
 @commands.has_permissions(ban_members=True)
-async def ban(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+async def ban(ctx, member: discord.Member, reason: str = None):
     if member.id == ctx.author.id:
         await ctx.send("You can't ban yourself!")
         return
@@ -70,7 +70,7 @@ async def ban(ctx, member: Option(discord.Member, description="The member to ban
         return
     else:
         if reason is None:
-            reason = f"No reason provided by {ctx.author.name}"
+            reason = f"No reason provided."
         await member.send(f"You have been banned from {ctx.guild.name} for {reason}")
         await ctx.guild.ban(member, reason=reason)
         await ctx.send(f"{member.mention} has been banned by {ctx.author.mention} for {reason}")
@@ -84,12 +84,13 @@ async def ban_error(ctx, error):
         await ctx.send(f"Something went wrong, I couldn't ban this member. Error: {error}")
         raise error
 
+
     
 #kick command
 
 @bot.slash_command(guild_ids=servers, name="kick", description="Kick a user")
 @commands.has_permissions(kick_members=True)
-async def kick(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+async def kick(ctx, member: discord.Member, reason: str = None):
     if member.id == ctx.author.id:
         await ctx.send("You can't kick yourself!")
         return
@@ -98,9 +99,9 @@ async def kick(ctx, member: Option(discord.Member, description="The member to ba
         return
     else:
         if reason is None:
-            reason = f"No reason provided by {ctx.author.name}"
+            reason = f"No reason provided."
         await member.send(f"You have been kicked from {ctx.guild.name} for {reason}")
-        await ctx.guild.ban(member, reason=reason)
+        await ctx.guild.kick(member, reason=reason)
         await ctx.send(f"{member.mention} has been kicked by {ctx.author.mention} for {reason}")
         log_channel = bot.get_channel(log_channel_id)
         await log_channel.send(f"{member.mention} has been kicked by {ctx.author.mention} for {reason}")
