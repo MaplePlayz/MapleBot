@@ -8,15 +8,16 @@ from discord import FFmpegPCMAudio
 import os
 from collections import deque
 import asyncio
+import dotenv
 
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
-log_channel_id = 1173725610309341401
+log_channel_id = 1173725610309341401 # Hier kun je de gewenste log-channel ID plaatsen
 
 bot = discord.Bot()
 
-servers = [1173725609382400101]
+servers = [1173725609382400101] # Hier kun je de gewenste server ID's plaatsen
 
 
 
@@ -341,6 +342,8 @@ async def queue(ctx):
     else:
         await ctx.respond("The queue is empty.")
 
+#anime commands
+
 
 
 @bot.event
@@ -350,4 +353,6 @@ async def on_ready():
                     os.remove(file)
     print("Ready!")
 
-bot.run("MTEzNjQ1ODYwOTAyNzQ2NTI4Ng.Gb0zt7.zl51zpPt9f4T-H_QrZBaz3c2W4PxPEls55IP0k")
+dotenv.load_dotenv()
+
+bot.run(os.getenv("TOKEN"))
