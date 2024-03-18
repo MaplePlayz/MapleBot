@@ -21,7 +21,9 @@ bot = discord.Bot()
 
 servers = [1173725609382400101] # Hier kun je de gewenste server ID's plaatsen
 
-
+#anilist api
+id = os.getenv("ANILIST_ID")
+secret = os.getenv("ANILIST_SECRET")
 
 #Administrator commands
 
@@ -411,6 +413,47 @@ async def anime(ctx):
         if image_path and os.path.exists(image_path):
             os.remove(image_path)
         
+
+# anime lookup command
+@bot.slash_command(guild_ids=servers, name="anime-lookup", description="Look up an anime")
+async def anime_lookup(ctx, anime_name: str):
+    try:
+        # Make the request to the AniList API to search for the anime
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://anilistmikilior1v1.p.rapidapi.com/getSeriesPage", 
+                                   headers={"Authorization": f"Bearer {id}:{secret}"},
+                                   params={"name": anime_name}) as response:
+                data = await response.json()
+
+        # Check if the API returned any results
+        if not data:
+            await ctx.respond("No results found for the given anime name.")
+            return
+
+        # Get the first result from the API response
+        anime_data = data[0]
+
+        # Extract the relevant information from the API response
+        name = anime_data["title"]["romaji"]
+        episodes = anime_data["episodes"]
+        description = anime_data["description"]
+        anilist_link = anime_data["siteUrl"]
+        image_url = anime_data["coverImage"]["large"]
+
+        # Create an embed to display the information
+        embed = discord.Embed(title=name, description=description, color=0x00ff00)
+        embed.add_field(name="Episodes", value=episodes)
+        embed.add_field(name="AniList Link", value=anilist_link)
+        embed.set_image(url=image_url)
+
+        await ctx.respond(embed=embed)
+    
+    except aiohttp.ClientConnectorError:
+        await ctx.respond("Failed to connect to AniList API. Please try again later.")
+    except Exception as e:
+        await ctx.respond(f"An error occurred: {str(e)}")
+
+
 
 
 
