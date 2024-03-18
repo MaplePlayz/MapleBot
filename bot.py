@@ -9,7 +9,9 @@ import os
 from collections import deque
 import asyncio
 import dotenv
-
+import aiohttp
+import traceback
+import datetime as dt
 
 admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
@@ -343,6 +345,74 @@ async def queue(ctx):
         await ctx.respond("The queue is empty.")
 
 #anime commands
+
+
+# anime image reversal command
+
+
+trace_url = 'https://api.trace.moe/search'
+
+@bot.slash_command(guild_ids=servers, name="anime-image", description="Find information about an anime from an image")
+async def anime(ctx):
+    await ctx.respond("Please upload the anime image you want to search for.")
+
+    def check(message):
+        return message.author == ctx.author and message.attachments
+
+    image_path = None  # Initialize image_path variable
+
+    try:
+        message = await bot.wait_for('message', check=check, timeout=60)
+        image = message.attachments[0]
+
+        # Download the attached image locally
+        image_path = f"temp_image_{ctx.interaction.id}.png"
+        await image.save(image_path)
+
+        # Make the request to Trace Moe API
+        async with aiohttp.ClientSession() as session:
+            with open(image_path, 'rb') as file:
+                async with session.post(f"{trace_url}?anilistInfo", data={'image': file}) as resp:
+                    if resp.status == 200:
+                        async def fmtTime(timestamp):
+                            return dt.datetime.utcfromtimestamp(timestamp).strftime("%H:%M:%S UTC")
+
+                        anime_info = await resp.json()
+
+                        # Check if any anime was found
+                        if anime_info.get('result') and anime_info['result'][0].get('anilist'):
+                            data = anime_info['result'][0]
+                            at = await fmtTime(data["from"])
+                            anilist_id = data["anilist"]["id"]
+                            link = f"https://anilist.co/anime/{anilist_id}"
+                            title_romaji = data["anilist"]["title"]["romaji"]
+                            episode = data["episode"]
+                            
+                            # Create an embed to display the anime information
+                            embed = discord.Embed(title="Anime Information", color=discord.Color(0xFFB6C1))
+                            embed.add_field(name="Anime", value=title_romaji, inline=False)
+                            embed.add_field(name="Episode", value=episode, inline=False)
+                            embed.add_field(name="At", value=at, inline=False)
+                            embed.add_field(name="Link", value=f"[Anilist]({link})", inline=False)
+                            
+                            await ctx.respond(embed=embed)
+                        else:
+                            await ctx.respond("No anime found in the image.")
+                    else:
+                        await ctx.respond(f"Failed to retrieve anime information. Status code: {resp.status}")
+
+    except asyncio.TimeoutError:
+        await ctx.respond("No image provided within the time limit.")
+    except Exception as e:
+        traceback.print_exc()
+        await ctx.respond(f"An error occurred: {str(e)}")
+    finally:
+        # Remove the downloaded image file if it exists
+        if image_path and os.path.exists(image_path):
+            os.remove(image_path)
+        
+
+
 
 
 
