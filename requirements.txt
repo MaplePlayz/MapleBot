@@ -1,3 +1,5 @@
-discord
 discord.py
+py-cord
+yt_dlp
+PyNaCl
 aiohttp
