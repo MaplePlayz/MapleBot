@@ -246,14 +246,7 @@ async def play_song(ctx, song):
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:
             info = ydl.extract_info(song, download=True)
-            #if 'url' in info:
-               # url = info['url']
-           # elif 'entries' in info:
-                # Take the URL of the first video in the playlist
-              #  url = info['entries'][0]['url']
-           # else:
-             #   await ctx.respond("Could not find the URL of the song.")
-               # return
+            
         except yt_dlp.DownloadError as e:
             await ctx.respond(f"An error occurred while trying to play the song: {e}")
             return
