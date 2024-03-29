@@ -21,10 +21,6 @@ bot = discord.Bot()
 
 servers = [1173725609382400101] # Hier kun je de gewenste server ID's plaatsen
 
-#anilist api
-id = os.getenv("ANILIST_ID")
-secret = os.getenv("ANILIST_SECRET")
-
 #Administrator commands
 
 #banlist command
@@ -74,7 +70,7 @@ async def on_application_command_error(ctx, error):
 
 @bot.slash_command(guild_ids=servers, name="ban", description="Ban a user")
 @commands.has_permissions(ban_members=True)
-async def ban(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+async def ban(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)): # type: ignore
     if member.id == ctx.author.id:
         await ctx.respond("You can't ban yourself!")
         return
@@ -102,7 +98,7 @@ async def ban_error(ctx, error):
 
 @bot.slash_command(guild_ids=servers, name="kick", description="Kick a user")
 @commands.has_permissions(kick_members=True)
-async def kick(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):
+async def kick(ctx, member: Option(discord.Member, description="The member to ban"), reason: Option(str, description="why?", required=False)):  # type: ignore
     if member.id == ctx.author.id:
         await ctx.respond("You can't kick yourself!")
         return
@@ -128,7 +124,7 @@ async def ban_error(ctx, error):
 #mute command
 @bot.slash_command(guild_ids=servers, name="mute", description="Mute a user")
 @commands.has_permissions(manage_roles=True)
-async def mute(ctx, member: Option(discord.Member, description="The member to mute"), reason: Option(str, description="why?", required=False)):
+async def mute(ctx, member: Option(discord.Member, description="The member to mute"), reason: Option(str, description="why?", required=False)): # type: ignore
     if member.id == ctx.author.id:
         await ctx.respond("You can't mute yourself!")
         return
@@ -157,7 +153,7 @@ async def mute_error(ctx, error):
 #unmute command
 @bot.slash_command(guild_ids=servers, name="unmute", description="Unmute a user")
 @commands.has_permissions(manage_roles=True)
-async def unmute(ctx, member: Option(discord.Member, description="The member to unmute")):
+async def unmute(ctx, member: Option(discord.Member, description="The member to unmute")): # type: ignore
     if discord.utils.get(member.roles, id=muted_role) is not None:
         
         await member.remove_roles(ctx.guild.get_role(muted_role))
@@ -177,7 +173,7 @@ async def unmute_error(ctx, error):
 #clear command
 @bot.slash_command(guild_ids=servers, name="clear", description="Clear messages")
 @commands.has_permissions(manage_messages=True)
-async def clear(ctx, amount: Option(int, description="The amount of messages to clear")):
+async def clear(ctx, amount: Option(int, description="The amount of messages to clear")): # type: ignore
     await ctx.channel.purge(limit=amount)
     await ctx.respond(f"{amount} messages have been cleared")
 @clear.error
@@ -407,45 +403,6 @@ async def anime(ctx):
             os.remove(image_path)
         
 
-# anime lookup command
-@bot.slash_command(guild_ids=servers, name="anime-lookup", description="Look up an anime")
-async def anime_lookup(ctx, anime_name: str):
-    try:
-        # Make the request to the AniList API to search for the anime
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"https://anilistmikilior1v1.p.rapidapi.com/getSeriesPage", 
-                                   headers={"Authorization": f"Bearer {id}:{secret}"},
-                                   params={"name": anime_name}) as response:
-                data = await response.json()
-
-        # Check if the API returned any results
-        if not data:
-            await ctx.respond("No results found for the given anime name.")
-            return
-
-        # Get the first result from the API response
-        anime_data = data[0]
-
-        # Extract the relevant information from the API response
-        name = anime_data["title"]["romaji"]
-        episodes = anime_data["episodes"]
-        description = anime_data["description"]
-        anilist_link = anime_data["siteUrl"]
-        image_url = anime_data["coverImage"]["large"]
-
-        # Create an embed to display the information
-        embed = discord.Embed(title=name, description=description, color=0x00ff00)
-        embed.add_field(name="Episodes", value=episodes)
-        embed.add_field(name="AniList Link", value=anilist_link)
-        embed.set_image(url=image_url)
-
-        await ctx.respond(embed=embed)
-    
-    except aiohttp.ClientConnectorError:
-        await ctx.respond("Failed to connect to AniList API. Please try again later.")
-    except Exception as e:
-        await ctx.respond(f"An error occurred: {str(e)}")
-
 # help command for all commands
 @bot.slash_command(guild_ids=servers, name="help", description="Get help with commands")
 async def help(ctx):
@@ -466,9 +423,6 @@ async def help(ctx):
     embed.add_field(name="/anime-image", value="Find information about an anime from an image", inline=False)
     embed.add_field(name="/anime-lookup", value="Look up an anime", inline=False)
     await ctx.respond(embed=embed)
-
-
-
 
 
 
