@@ -13,7 +13,7 @@ import aiohttp
 import traceback
 import datetime as dt
 
-admin_roles = [1173725609382400106, 1173729989670223882]  # Hier kun je de gewenste admin-role ID's plaatsen
+
 muted_role = 1197094790379089971  # Hier kun je de gewenste muted-role ID plaatsen
 log_channel_id = 1173725610309341401 # Hier kun je de gewenste log-channel ID plaatsen
 
@@ -192,6 +192,7 @@ song_queue = deque()
 
 @bot.slash_command(guild_ids=servers, name="play", description="Play a song") #commando voor het afspelen van een nummer
 async def play(ctx, song: str): #context van het commando en het nummer dat je wilt afspelen
+    await ctx.defer()
     voice_channel = ctx.author.voice.channel #check of de gebruiker in een voice channel zit
     if voice_channel is None: #als de gebruiker niet in een voice channel zit
         await ctx.respond("You are not in a voice channel.")
@@ -210,7 +211,7 @@ async def play(ctx, song: str): #context van het commando en het nummer dat je w
     if voice_client is None: #als de bot niet in een voice channel zit
         voice_client = await voice_channel.connect()
 
-    await ctx.defer() #bot reageert later
+    #await ctx.defer() #bot reageert later
 
     await play_song(ctx, song) #nummer afspelen
 
@@ -278,6 +279,7 @@ async def skip_error(ctx, error):
 # Stop command
 @bot.slash_command(guild_ids=servers, name="stop", description="Stop the music")   #commando voor het stoppen van de muziek
 async def stop(ctx): #context van het commando
+    await ctx.defer()
     voice_client = ctx.guild.voice_client #check of de bot in een voice channel zit
     if voice_client and voice_client.is_playing(): #stop de muziek als de bot aan het afspelen is
         await ctx.respond("Music stopped.")
